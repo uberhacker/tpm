@@ -1,0 +1,9 @@
+{
+  "name": "uberhacker/tpm",
+  "description": "Terminus plugin to manage all your Terminus plugins",
+  "homepage": "https://github.com/uberhacker/tpm",
+  "license": "MIT",
+  "require": {
+    "php": ">=5.4"
+  },
+}
