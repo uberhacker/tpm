@@ -62,7 +62,7 @@ class TpmCommand extends TerminusCommand {
    */
   public function show() {
     $plugins_dir = $this->getPluginDir('');
-    exec("ls $plugins_dir | xargs 2> /dev/null", $output);
+    exec("ls $plugins_dir", $output);
     if (empty($output[0])) {
       $message = "No plugins installed.";
       $this->log()->notice($message);
@@ -72,8 +72,7 @@ class TpmCommand extends TerminusCommand {
       $this->log()->notice($message);
       $message = "The following plugins are installed:";
       $this->log()->notice($message);
-      $plugins = explode(" ", $output[0]);
-      $this->log()->notice($plugins);
+      $this->log()->notice($output);
     }
   }
 
@@ -151,16 +150,20 @@ class TpmCommand extends TerminusCommand {
    * @param string
    *   Plugin name
    * @return string
-   *   Plugin directory
+   *   Plugin directorysdflasd:x
+
    */
   private function getPluginDir($arg) {
     $plugins_dir = getenv('TERMINUS_PLUGINS_DIR');
+    $system = getenv('MSYSTEM') !== null ? strtoupper(substr(getenv('MSYSTEM'), 0, 4)) : '';
+    $windows = (\Terminus\Utils\isWindows() && $system != 'MING');
+    $home = $windows ? getenv('HOMEPATH') : str_ireplace('C:', '/c', str_replace('\\', '/', getenv('HOME')));
     if (!$plugins_dir) {
-      $plugins_dir = \Terminus\Utils\isWindows() ? getenv('HOMEPATH') . '\\terminus\\plugins\\' : getenv('HOME') . '/terminus/plugins/';
+      $plugins_dir = $windows ? $home . '\\terminus\\plugins\\' : $home . '/terminus/plugins/';
     }
     else {
       // Make sure the proper trailing slash exists
-      $slash = \Terminus\Utils\isWindows() ? '\\' : '/';
+      $slash = $windows ? '\\' : '/';
       $plugins_dir .= (substr($plugins_dir, -1) == $slash ? '' : $slash);
     }
     // Make the directory if it doesn't already exist
