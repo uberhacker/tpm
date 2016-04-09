@@ -150,7 +150,7 @@ class TpmCommand extends TerminusCommand {
    * @param string
    *   Plugin name
    * @return string
-   *   Plugin directorysdflasd:x
+   *   Plugin directory
 
    */
   private function getPluginDir($arg) {
