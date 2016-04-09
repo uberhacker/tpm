@@ -163,6 +163,10 @@ class TpmCommand extends TerminusCommand {
       $slash = \Terminus\Utils\isWindows() ? '\\' : '/';
       $plugins_dir .= (substr($plugins_dir, -1) == $slash ? '' : $slash);
     }
+    // Make the directory if it doesn't already exist
+    if (!is_dir($plugins_dir)) {
+      mkdir($plugins_dir, 755, true);
+    }
     return $plugins_dir . $arg;
   }
 
