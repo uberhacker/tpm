@@ -181,11 +181,11 @@ class TpmCommand extends TerminusCommand {
   private function updatePlugin($arg) {
     $plugin = $this->getPluginDir($arg);
     if (!is_dir($plugin)) {
-      $message = "Plugin $arg is not installed.";
+      $message = "$arg plugin is not installed.";
       $this->failure($message);
     }
     else {
-      $message = "Updating plugin $arg...";
+      $message = "Updating $arg plugin...";
       $this->log()->notice($message);
       exec("cd $plugin && git pull", $output);
       foreach ($output as $message) {
