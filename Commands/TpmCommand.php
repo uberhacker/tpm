@@ -139,14 +139,8 @@ class TpmCommand extends TerminusCommand {
         foreach ($output as $message) {
           $this->log()->notice($message);
         }
-        if (!is_dir($plugin)) {
-          $message = "$arg plugin was removed successfully.";
-          $this->log()->notice($message);
-        }
-        else {
-          $message = "Unable to remove $arg plugin.";
-          $this->failure($message);
-        }
+        $message = "$arg plugin was removed successfully.";
+        $this->log()->notice($message);
       }
     }
   }
