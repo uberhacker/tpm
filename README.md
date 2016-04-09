@@ -2,7 +2,7 @@
 
 A Terminus plugin to manage all your Terminus plugins
 
-# Installation:
+## Installation:
 
 Refer to the [Terminus Wiki](https://github.com/pantheon-systems/terminus/wiki/Plugins).
 
