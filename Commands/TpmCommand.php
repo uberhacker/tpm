@@ -47,7 +47,7 @@ class TpmCommand extends TerminusCommand {
         $message = "$arg is not a valid plugin Git repository.";
         $this->failure($message);
       }
-      exec("cd $plugins_dir && git clone $arg", $output);
+      exec("cd \"$plugins_dir\" && git clone $arg", $output);
       foreach ($output as $message) {
         $this->log()->notice($message);
       }
@@ -62,7 +62,7 @@ class TpmCommand extends TerminusCommand {
    */
   public function show() {
     $plugins_dir = $this->getPluginDir('');
-    exec("ls $plugins_dir", $output);
+    exec("ls \"$plugins_dir\"", $output);
     if (empty($output[0])) {
       $message = "No plugins installed.";
       $this->log()->notice($message);
@@ -93,14 +93,14 @@ class TpmCommand extends TerminusCommand {
 
     if ($args[0] == 'all') {
       $plugins_dir = $this->getPluginDir('');
-      exec("ls $plugins_dir | xargs 2> /dev/null", $output);
+      exec("ls \"$plugins_dir\"", $output);
       if (empty($output[0])) {
         $message = "No plugins installed.";
         $this->log()->notice($message);
       }
       else {
-        $plugins = explode(" ", $output[0]);
-        foreach ($plugins as $plugin) {
+        //$plugins = explode(" ", $output[0]);
+        foreach ($output as $plugin) {
           $this->updatePlugin($plugin);
         }
       }
@@ -129,12 +129,12 @@ class TpmCommand extends TerminusCommand {
 
     foreach ($args as $arg) {
       $plugin = $this->getPluginDir($arg);
-      if (!is_dir($plugin)) {
+      if (!is_dir("$plugin")) {
         $message = "$arg plugin is not installed.";
         $this->failure($message);
       }
       else {
-        exec("rm -rf $plugin", $output);
+        exec("rm -rf \"$plugin\"", $output);
         foreach ($output as $message) {
           $this->log()->notice($message);
         }
@@ -155,20 +155,25 @@ class TpmCommand extends TerminusCommand {
    */
   private function getPluginDir($arg) {
     $plugins_dir = getenv('TERMINUS_PLUGINS_DIR');
-    $system = getenv('MSYSTEM') !== null ? strtoupper(substr(getenv('MSYSTEM'), 0, 4)) : '';
-    $windows = (\Terminus\Utils\isWindows() && $system != 'MING');
-    $home = $windows ? getenv('HOMEPATH') : str_ireplace('C:', '/c', str_replace('\\', '/', getenv('HOME')));
+    $windows = \Terminus\Utils\isWindows();
+    $home = getenv('HOME');
+    if ($windows) {
+      $system = getenv('MSYSTEM') !== null ? strtoupper(substr(getenv('MSYSTEM'), 0, 4)) : '';
+      $home = ($system == 'MING') ? getenv('HOME') : getenv('HOMEPATH');
+      $home = str_replace('\\', '\\\\', $home);
+    }
     if (!$plugins_dir) {
-      $plugins_dir = $windows ? $home . '\\terminus\\plugins\\' : $home . '/terminus/plugins/';
+      $plugins_dir = $windows ? $home . '\\\\terminus\\\\plugins\\\\' : $home . '/terminus/plugins/';
     }
     else {
-      // Make sure the proper trailing slash exists
-      $slash = $windows ? '\\' : '/';
-      $plugins_dir .= (substr($plugins_dir, -1) == $slash ? '' : $slash);
+      // Make sure the proper trailing slash(es) exist
+      $slash = $windows ? '\\\\' : '/';
+      $chars = $windows ? 2 : 1;
+      $plugins_dir .= (substr("$plugins_dir", -$chars) == $slash ? '' : $slash);
     }
     // Make the directory if it doesn't already exist
-    if (!is_dir($plugins_dir)) {
-      mkdir($plugins_dir, 755, true);
+    if (!is_dir("$plugins_dir")) {
+      mkdir("$plugins_dir", 0755, true);
     }
     return $plugins_dir . $arg;
   }
@@ -188,7 +193,7 @@ class TpmCommand extends TerminusCommand {
     else {
       $message = "Updating $arg plugin...";
       $this->log()->notice($message);
-      exec("cd $plugin && git pull", $output);
+      exec("cd \"$plugin\" && git pull", $output);
       foreach ($output as $message) {
         $this->log()->notice($message);
       }
