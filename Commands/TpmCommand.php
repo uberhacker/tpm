@@ -99,7 +99,6 @@ class TpmCommand extends TerminusCommand {
         $this->log()->notice($message);
       }
       else {
-        //$plugins = explode(" ", $output[0]);
         foreach ($output as $plugin) {
           $this->updatePlugin($plugin);
         }
@@ -186,7 +185,7 @@ class TpmCommand extends TerminusCommand {
    */
   private function updatePlugin($arg) {
     $plugin = $this->getPluginDir($arg);
-    if (!is_dir($plugin)) {
+    if (!is_dir("$plugin")) {
       $message = "$arg plugin is not installed.";
       $this->failure($message);
     }
