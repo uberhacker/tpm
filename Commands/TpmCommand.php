@@ -130,7 +130,7 @@ class TpmCommand extends TerminusCommand {
       $plugin = $this->getPluginDir($arg);
       if (!is_dir("$plugin")) {
         $message = "$arg plugin is not installed.";
-        $this->failure($message);
+        $this->log()->error($message);
       }
       else {
         exec("rm -rf \"$plugin\"", $output);
@@ -187,14 +187,28 @@ class TpmCommand extends TerminusCommand {
     $plugin = $this->getPluginDir($arg);
     if (!is_dir("$plugin")) {
       $message = "$arg plugin is not installed.";
-      $this->failure($message);
+      $this->log()->error($message);
     }
     else {
+      $windows = \Terminus\Utils\isWindows();
+      $slash = $windows ? '\\\\' : '/';
+      $git_dir = $plugin . $slash . '.git';
       $message = "Updating $arg plugin...";
       $this->log()->notice($message);
-      exec("cd \"$plugin\" && git pull", $output);
-      foreach ($output as $message) {
-        $this->log()->notice($message);
+      if (!is_dir("$git_dir")) {
+        $messages = array();
+        $messages[] = "Unable to update $arg plugin.  Git repository does not exist.";
+        $messages[] = "The recommended way to install plugins is git clone <URL to plugin Git repository>.";
+        $messages[] = "See https://github.com/pantheon-systems/terminus/wiki/Plugins.";
+        foreach ($messages as $message) {
+          $this->log()->error($message);
+        }
+      }
+      else {
+        exec("cd \"$plugin\" && git pull", $output);
+        foreach ($output as $message) {
+          $this->log()->notice($message);
+        }
       }
     }
   }
