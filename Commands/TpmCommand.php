@@ -32,9 +32,9 @@ class TpmCommand extends TerminusCommand {
    * @subcommand install
    * @alias add
    */
-  public function install($args) {
-    if (!isset($args)) {
-      $message = "Usage: terminus plugin install [URL to plugin Git repository 1] [URL to plugin Git repository 2] ...";
+  public function install($args = array()) {
+    if (empty($args)) {
+      $message = "Usage: terminus plugin install|add [URL to plugin Git repository 1] [URL to plugin Git repository 2] ...";
       $this->failure($message);
     }
 
@@ -85,9 +85,9 @@ class TpmCommand extends TerminusCommand {
    * @subcommand update
    * @alias up
    */
-  public function update($args) {
-    if (!isset($args)) {
-      $message = "Usage: terminus plugin update [all | plugin-name-1] [plugin-name-2] ...";
+  public function update($args = array()) {
+    if (empty($args)) {
+      $message = "Usage: terminus plugin update|up [all | plugin-name-1] [plugin-name-2] ...";
       $this->failure($message);
     }
 
@@ -120,9 +120,9 @@ class TpmCommand extends TerminusCommand {
    * @subcommand uninstall
    * @alias remove
    */
-  public function uninstall($args) {
-    if (!isset($args)) {
-      $message = "Usage: terminus plugin uninstall [plugin-name-1] [plugin-name-2] ...";
+  public function uninstall($args = array()) {
+    if (empty($args)) {
+      $message = "Usage: terminus plugin uninstall|remove [plugin-name-1] [plugin-name-2] ...";
       $this->failure($message);
     }
 
