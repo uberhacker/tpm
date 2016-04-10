@@ -6,6 +6,8 @@ A Terminus plugin to manage all your Terminus plugins
 
 Refer to the [Terminus Wiki](https://github.com/pantheon-systems/terminus/wiki/Plugins).
 
+Windows users should install and run `terminus` in [Git for Windows](https://git-for-windows.github.io/).
+
 ## Usage:
 Install plugin(s):
 ```
