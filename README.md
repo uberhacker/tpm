@@ -27,7 +27,7 @@ $ terminus plugin uninstall | remove plugin-name-1 [plugin-name-2] ...
 ```
 Search for plugin(s) *(Partial strings perform a fuzzy search)*:
 ```
-$ terminus plugin search plugin-name-1 [plugin-name-2] ...
+$ terminus plugin search all | plugin-name-1 [plugin-name-2] ...
 ```
 Add plugin Git repositories:
 ```
@@ -72,6 +72,10 @@ $ terminus plugin uninstall awesome-plugin
 Search for all plugins with the word `awesome` in the plugin name:
 ```
 $ terminus plugin search awesome
+```
+Search for all plugins in searchable plugin Git repositories:
+```
+$ terminus plugin search all
 ```
 Add a plugin Git repository:
 ```

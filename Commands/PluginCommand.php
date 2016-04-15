@@ -192,7 +192,7 @@ class PluginCommand extends TerminusCommand {
    */
   public function search($args = array()) {
     if (empty($args)) {
-      $message = "Usage: terminus plugin search plugin-name-1";
+      $message = "Usage: terminus plugin search all | plugin-name-1";
       $message .= " [plugin-name-2] ...";
       $this->failure($message);
     }
@@ -528,6 +528,9 @@ YML;
    */
   private function searchRepositories($args = array()) {
     $plugins = array();
+    if ($args[0] == 'all') {
+      $args = array('[a-z]');
+    }
     $repositories = $this->listRepositories();
     foreach ($repositories as $repository) {
       foreach ($args as $arg) {
