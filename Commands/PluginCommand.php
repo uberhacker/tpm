@@ -325,10 +325,7 @@ class PluginCommand extends TerminusCommand {
    */
   private function updatePlugin($arg) {
     $plugin = $this->getPluginDir($arg);
-    if (!is_dir("$plugin")) {
-      $message = "$arg plugin is not installed.";
-      $this->log()->error($message);
-    } else {
+    if (is_dir("$plugin")) {
       $windows = Utils\isWindows();
       if ($windows) {
         $slash = '\\\\';
