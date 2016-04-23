@@ -101,18 +101,29 @@ class PluginCommand extends TerminusCommand {
       $message = "No plugins installed.";
       $this->log()->notice($message);
     } else {
+      $repositories = $this->listRepositories();
       $message = "Plugins are installed in $plugins_dir.";
       $this->log()->notice($message);
       $message = "The following plugins are installed:";
       $this->log()->notice($message);
       foreach ($output as $plugin) {
         if (is_dir($plugins_dir . $plugin)) {
-          $this->log()->notice($plugin);
+          foreach ($repositories as $repository) {
+            $url = $repository . '/' . $plugin;
+            if ($this->isValidUrl($url)) {
+              if ($title = $this->isValidPlugin($repository, $plugin)) {
+                $this->log()->notice($title);
+              } else {
+                $this->log()->notice($plugin);
+              }
+              break;
+            }
+          }
         }
       }
-      $message = "Use the 'terminus plugin search' command to find more plugins.";
+      $message = "Use 'terminus plugin search' to find more plugins.";
       $this->log()->notice($message);
-      $message = "Use the 'terminus plugin install' command to add more plugins.";
+      $message = "Use 'terminus plugin install' to add more plugins.";
       $this->log()->notice($message);
     }
   }
@@ -192,7 +203,7 @@ class PluginCommand extends TerminusCommand {
    */
   public function search($args = array()) {
     if (empty($args)) {
-      $message = "Usage: terminus plugin search all | plugin-name-1";
+      $message = "Usage: terminus plugin search plugin-name-1";
       $message .= " [plugin-name-2] ...";
       $this->failure($message);
     }
@@ -204,12 +215,8 @@ class PluginCommand extends TerminusCommand {
     } else {
       $message = "The following plugins were found:";
       $this->log()->notice($message);
-      foreach ($plugins as $plugin => $repository) {
-        if ($info = $this->isValidPlugin($repository, $plugin)) {
-          $this->log()->notice($info);
-        } else {
-          $this->log()->notice($plugin);
-        }
+      foreach ($plugins as $plugin => $title) {
+        $this->log()->notice($title);
       }
     }
   }
@@ -524,10 +531,8 @@ YML;
    * @return array List of plugin names found
    */
   private function searchRepositories($args = array()) {
+    $titles = array();
     $plugins = array();
-    if ($args[0] == 'all') {
-      $args = array('[a-z]');
-    }
     $repositories = $this->listRepositories();
     foreach ($repositories as $repository) {
       foreach ($args as $arg) {
@@ -542,17 +547,23 @@ YML;
             $host = $parts['host'];
             switch ($host) {
               case 'bitbucket.com':
+                // TODO: Add BitBucket parsing logic
                   break;
               case 'github.com':
                 $repo_data = @file_get_contents($repository . '?tab=repositories');
                 if (!empty($repo_data)) {
                   $path = $parts['path'];
-                  $pattern = '|' . $path . '/(.*' . $arg . '.*)".*codeRepository|U';
+                  $pattern = '|' . $path . '/(.*)".*codeRepository|U';
                   preg_match_all($pattern, $repo_data, $matches);
                   if (isset($matches[1])) {
                     foreach ($matches[1] as $match) {
-                      if ($this->isValidPlugin($repository, $match)) {
-                        $plugins[$match] = $repository;
+                      if ($title = $this->isValidPlugin($repository, $match)) {
+                        $titles["$repository/$match"] = $title;
+                      }
+                    }
+                    foreach ($titles as $repo => $title) {
+                      if ((stripos($repo, $arg) !== false) || (stripos($title, $arg) !== false)) {
+                        $plugins[$repo] = $title;
                       }
                     }
                   }
