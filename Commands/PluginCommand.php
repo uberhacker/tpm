@@ -73,13 +73,12 @@ class PluginCommand extends TerminusCommand {
           $message = "No plugins found matching $arg.";
           $this->log()->error($message);
         } else {
-          foreach ($plugins as $plugin => $repository) {
-            if (is_dir($plugins_dir . $plugin)) {
-              $message = "$plugin plugin already installed.";
+          foreach ($plugins as $plugin => $item) {
+            if (is_dir($plugins_dir . $item['package'])) {
+              $message = "{$item['package']} plugin already installed.";
               $this->log()->notice($message);
             } else {
-              $repo = $repository . '/' . $plugin;
-              exec("cd \"$plugins_dir\" && git clone $repo", $output);
+              exec("cd \"$plugins_dir\" && git clone {$item['repo']}", $output);
               foreach ($output as $message) {
                 $this->log()->notice($message);
               }
@@ -222,7 +221,7 @@ class PluginCommand extends TerminusCommand {
       );
 
       foreach($plugins AS $item){
-        $table->addRow(array($item['package'], $item['title'], $item['description'], "{$item['creator']} <{$item['creator_email']}>"));
+        $table->addRow(array($item['package']. ($item['installed'] ? ' ( installed )' : ''), $item['title'], $item['description'], "{$item['creator']}".( !empty($item['creator_email']) ? " <{$item['creator_email']}>" : "")));
       }
 
       print $table->getTable();
