@@ -2,10 +2,15 @@
 
 namespace Terminus\Commands;
 
+require_once __DIR__.'/../vendor/autoload.php';
+
 use Symfony\Component\Yaml\Yaml;
 use Terminus\Commands\TerminusCommand;
 use Terminus\Exceptions\TerminusException;
 use Terminus\Utils;
+
+const DEFAULT_URL = 'https://terminus-plugins.firebaseio.com/';
+const DEFAULT_PATH = '/plugins';
 
 /**
  * Manage Terminus plugins
@@ -202,22 +207,28 @@ class PluginCommand extends TerminusCommand {
    * @alias find
    */
   public function search($args = array()) {
-    if (empty($args)) {
-      $message = "Usage: terminus plugin search plugin-name-1";
-      $message .= " [plugin-name-2] ...";
+    if (empty($args) || count($args) > 1) {
+      $message = "Usage: terminus plugin search plugin-name";
       $this->failure($message);
     }
-
     $plugins = $this->searchRepositories($args);
     if (empty($plugins)) {
       $message = "No plugins were found.";
       $this->log()->notice($message);
     } else {
-      $message = "The following plugins were found:";
+      $message = "The following plugin were found:";
       $this->log()->notice($message);
-      foreach ($plugins as $plugin => $title) {
-        $this->log()->notice($title);
+
+      $table = new \Console_Table();
+      $table->setHeaders(
+        array('Package', 'Title', 'Description', 'Author')
+      );
+
+      foreach($plugins AS $item){
+        $table->addRow(array($item['package'], $item['title'], $item['description'], "{$item['creator']} <{$item['creator_email']}>"));
       }
+
+      print $table->getTable();
     }
   }
 
@@ -531,50 +542,16 @@ YML;
    * @return array List of plugin names found
    */
   private function searchRepositories($args = array()) {
-    $titles = array();
-    $plugins = array();
-    $repositories = $this->listRepositories();
-    foreach ($repositories as $repository) {
-      foreach ($args as $arg) {
-        $url = $repository . '/' . $arg;
-        if ($this->isValidUrl($url)) {
-          if ($this->isValidPlugin($repository, $arg)) {
-            $plugins[$arg] = $repository;
-          }
-        } else {
-          $parts = @parse_url($repository);
-          if (isset($parts['host'])) {
-            $host = $parts['host'];
-            switch ($host) {
-              case 'bitbucket.com':
-                // TODO: Add BitBucket parsing logic
-                  break;
-              case 'github.com':
-                $repo_data = @file_get_contents($repository . '?tab=repositories');
-                if (!empty($repo_data)) {
-                  $path = $parts['path'];
-                  $pattern = '|' . $path . '/(.*)".*codeRepository|U';
-                  preg_match_all($pattern, $repo_data, $matches);
-                  if (isset($matches[1])) {
-                    foreach ($matches[1] as $match) {
-                      if ($title = $this->isValidPlugin($repository, $match)) {
-                        $titles["$repository/$match"] = $title;
-                      }
-                    }
-                    foreach ($titles as $repo => $title) {
-                      if ((stripos($repo, $arg) !== false) || (stripos($title, $arg) !== false)) {
-                        $plugins[$repo] = $title;
-                      }
-                    }
-                  }
-                }
-                  break;
-              default:
-            }
-          }
-        }
-      }
+    $this->database = new \Firebase\FirebaseLib(DEFAULT_URL);
+    $results = $this->database->get(DEFAULT_PATH);
+    $results = json_decode($results, true);
+
+    $plugin_search = preg_grep("/{$args[0]}/", array_keys($results));
+    foreach($plugin_search as $plugin_id){
+      $item = $results[$plugin_id];
+      $plugins[$item['repo']] = $item;
     }
+
     return $plugins;
   }
 

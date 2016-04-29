@@ -4,6 +4,8 @@
   "homepage": "https://github.com/uberhacker/tpm",
   "license": "MIT",
   "require": {
-    "php": ">=5.4"
-  },
+    "php": ">=5.4",
+    "ktamas77/firebase-php": "dev-master",
+    "pear/console_table": "^1.3"
+  }
 }
