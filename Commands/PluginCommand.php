@@ -444,10 +444,7 @@ YML;
       preg_match('|<title>(.*)</title>|', $plugin_data, $match);
       if (isset($match[1])) {
         $title = $match[1];
-        if (stripos($title, 'terminus') && stripos($title, 'plugin')) {
-          return $title;
-        }
-        return '';
+        return $title;
       }
       return '';
     }
