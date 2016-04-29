@@ -40,9 +40,7 @@ class PluginCommand extends TerminusCommand {
    */
   public function install($args = array()) {
     if (empty($args)) {
-      $message = "Usage: terminus plugin install | add plugin-name-1 |";
-      $message .= " <URL to plugin Git repository 1> [plugin-name-2 |";
-      $message .= " <URL to plugin Git repository 2>] ...";
+      $message = "Usage: terminus plugin install plugin-name-1 [plugin-name-2] [plugin-name-3]";
       $this->failure($message);
     }
 
@@ -63,7 +61,6 @@ class PluginCommand extends TerminusCommand {
             $message = "$plugin plugin already installed.";
             $this->log()->notice($message);
           } else {
-            $this->addRepository($repository);
             exec("cd \"$plugins_dir\" && git clone $arg", $output);
             foreach ($output as $message) {
               $this->log()->notice($message);
@@ -232,64 +229,6 @@ class PluginCommand extends TerminusCommand {
     }
   }
 
-  /**
-   * Manage repositories
-   *
-   * @param array $args A subcommand followed by a list of one
-   *   or more repositories
-   *
-   * @subcommand repository
-   * @alias repo
-   */
-  public function repository($args = array()) {
-    $usage = "Usage: terminus plugin repository | repo add | list | remove";
-    $usage .= " <URL to plugin Git repository 1>";
-    $usage .= " [<URL to plugin Git repository 2>] ...";
-    if (empty($args)) {
-      $this->failure($usage);
-    }
-    $cmd = array_shift($args);
-    $valid_cmds = array('add', 'list', 'remove');
-    if (!in_array($cmd, $valid_cmds)) {
-      $this->failure($usage);
-    }
-    switch ($cmd) {
-      case 'add':
-        if (empty($args)) {
-          $this->failure($usage);
-        }
-        foreach ($args as $arg) {
-          $this->addRepository($arg);
-        }
-          break;
-      case 'list':
-        $repositories = $this->listRepositories();
-        if (empty($repositories)) {
-          $message = 'No plugin repositories exist.';
-          $this->log()->error($message);
-        } else {
-          $repo_yml = $this->getRepositoriesPath();
-          $message = "Plugin repositories are stored in $repo_yml.";
-          $this->log()->notice($message);
-          $message = "The following plugin repositories are available:";
-          $this->log()->notice($message);
-          foreach ($repositories as $repository) {
-            $this->log()->notice($repository);
-          }
-          $message = "The 'terminus plugin search' command will only search in these repositories.";
-          $this->log()->notice($message);
-        }
-          break;
-      case 'remove':
-        if (empty($args)) {
-          $this->failure($usage);
-        }
-        foreach ($args as $arg) {
-          $this->removeRepository($arg);
-        }
-          break;
-    }
-  }
 
   /**
    * Get the plugin directory
@@ -419,38 +358,6 @@ class PluginCommand extends TerminusCommand {
 # List of well-known or custom plugin Git repositories
 ---
 YML;
-  }
-
-  /**
-   * Add repository
-   *
-   * @param string $repo Repository URL
-   */
-  private function addRepository($repo = '') {
-    if (!$this->isValidUrl($repo)) {
-      $message = "$repo is not a valid URL.";
-      $this->failure($message);
-    }
-    $repo_exists = false;
-    $repositories = $this->listRepositories();
-    foreach ($repositories as $repository) {
-      if ($repository == $repo) {
-        $message = "Unable to add $repo.  Repository already added.";
-        $this->log()->error($message);
-        $repo_exists = true;
-        break;
-      }
-    }
-    if (!$repo_exists) {
-      $parts = parse_url($repo);
-      if (isset($parts['path']) && ($parts['path'] != '/')) {
-        $host = $parts['scheme'] . '://' . $parts['host'];
-        $path = substr($parts['path'], 1);
-        $repositories = $this->getRepositories();
-        $repositories[$host][] = $path;
-        $this->saveRepositories($repositories);
-      }
-    }
   }
 
   /**
