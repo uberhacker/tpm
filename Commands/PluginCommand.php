@@ -393,53 +393,7 @@ YML;
     if (!$exists) {
       $message = "Unable to remove $repo.  Repository does not exist.";
       $this->log()->error($message);
-    } else {
-      $parts = parse_url($repo);
-      $host = $parts['scheme'] . '://' . $parts['host'];
-      $path = substr($parts['path'], 1);
-      $repositories = $this->getRepositories();
-      foreach ($repositories as $repo_host => $repository) {
-        if ($repo_host == $host) {
-          foreach ($repository as $key => $repo_url) {
-            if ($repo_url == $path) {
-              unset($repositories[$host][$key]);
-              $this->saveRepositories($repositories, 'remove');
-              break;
-            }
-          }
-          break;
-        }
-      }
     }
-  }
-
-  /**
-   * Save repositories
-   *
-   * @param array $repos A list of plugin repositories
-   */
-  private function saveRepositories($repos = array(), $op = 'add') {
-    $repo_yml = $this->getRepositoriesPath();
-    $header = $this->getRepositoriesHeader();
-    $repo_data = "$header\n" . Yaml::dump($repos);
-    try {
-      $handle = fopen($repo_yml, "w");
-      fwrite($handle, $repo_data);
-      fclose($handle);
-    } catch (Exception $e) {
-      $messages = array();
-      $messages[] = "Unable to $op plugin repository.";
-      $messages[] = $e->getMessage();
-      $message = implode("\n", $messages);
-      $this->failure($message);
-    }
-    if ($op == 'add') {
-      $oped = 'added';
-    } else {
-      $oped = 'removed';
-    }
-    $message = "Plugin repository was $oped successfully.";
-    $this->log()->notice($message);
   }
 
   /**
@@ -449,14 +403,19 @@ YML;
    * @return array List of plugin names found
    */
   private function searchRepositories($args = array()) {
+    $plugins_dir = $this->getPluginDir();
     $this->database = new \Firebase\FirebaseLib(DEFAULT_URL);
     $results = $this->database->get(DEFAULT_PATH);
     $results = json_decode($results, true);
 
-    $plugin_search = preg_grep("/{$args[0]}/", array_keys($results));
-    foreach($plugin_search as $plugin_id){
+    $output = array_column($results, 'package');
+    $plugin_search = preg_grep("/{$args[0]}/", $output);
+    $keys = array_keys($results);
+    foreach($plugin_search as $index => $package){
+      $plugin_id = $keys[$index];
       $item = $results[$plugin_id];
-      $plugins[$item['repo']] = $item;
+      $item['installed'] = is_dir($plugins_dir . $item['package']);
+      $plugins[] = $item;
     }
 
     return $plugins;
