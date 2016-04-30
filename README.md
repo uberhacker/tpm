@@ -24,6 +24,7 @@ $ terminus plugin update | up all | plugin-name-1 [plugin-name-2] ...
 Remove installed plugin(s):
 ```
 $ terminus plugin uninstall | remove plugin-name-1 [plugin-name-2] ...
+```
 
 ## Examples:
 Install awesome-plugin:
