@@ -2,10 +2,14 @@
 
 namespace Terminus\Commands;
 
+require_once __DIR__.'/../vendor/autoload.php';
+
 use Symfony\Component\Yaml\Yaml;
 use Terminus\Commands\TerminusCommand;
 use Terminus\Exceptions\TerminusException;
 use Terminus\Utils;
+
+const DEFAULT_URL = 'http://live-terminus-plugins.pantheonsite.io/plugins.json';
 
 /**
  * Manage Terminus plugins
@@ -35,9 +39,7 @@ class PluginCommand extends TerminusCommand {
    */
   public function install($args = array()) {
     if (empty($args)) {
-      $message = "Usage: terminus plugin install | add plugin-name-1 |";
-      $message .= " <URL to plugin Git repository 1> [plugin-name-2 |";
-      $message .= " <URL to plugin Git repository 2>] ...";
+      $message = "Usage: terminus plugin install plugin-name-1 [plugin-name-2] [plugin-name-3]";
       $this->failure($message);
     }
 
@@ -58,7 +60,6 @@ class PluginCommand extends TerminusCommand {
             $message = "$plugin plugin already installed.";
             $this->log()->notice($message);
           } else {
-            $this->addRepository($repository);
             exec("cd \"$plugins_dir\" && git clone $arg", $output);
             foreach ($output as $message) {
               $this->log()->notice($message);
@@ -71,13 +72,12 @@ class PluginCommand extends TerminusCommand {
           $message = "No plugins found matching $arg.";
           $this->log()->error($message);
         } else {
-          foreach ($plugins as $plugin => $repository) {
-            if (is_dir($plugins_dir . $plugin)) {
-              $message = "$plugin plugin already installed.";
+          foreach ($plugins as $plugin => $item) {
+            if (is_dir($plugins_dir . $item['package'])) {
+              $message = "{$item['package']} plugin already installed.";
               $this->log()->notice($message);
             } else {
-              $repo = $repository . '/' . $plugin;
-              exec("cd \"$plugins_dir\" && git clone $repo", $output);
+              exec("cd \"$plugins_dir\" && git clone {$item['repo']} {$item['package']}", $output);
               foreach ($output as $message) {
                 $this->log()->notice($message);
               }
@@ -202,83 +202,31 @@ class PluginCommand extends TerminusCommand {
    * @alias find
    */
   public function search($args = array()) {
-    if (empty($args)) {
-      $message = "Usage: terminus plugin search plugin-name-1";
-      $message .= " [plugin-name-2] ...";
+    if (empty($args) || count($args) > 1) {
+      $message = "Usage: terminus plugin search plugin-name";
       $this->failure($message);
     }
-
     $plugins = $this->searchRepositories($args);
     if (empty($plugins)) {
       $message = "No plugins were found.";
       $this->log()->notice($message);
     } else {
-      $message = "The following plugins were found:";
+      $message = "The following plugin were found:";
       $this->log()->notice($message);
-      foreach ($plugins as $plugin => $title) {
-        $this->log()->notice($title);
+
+      $table = new \Console_Table();
+      $table->setHeaders(
+        array('Package', 'Title', 'Description', 'Author')
+      );
+
+      foreach($plugins AS $item){
+        $table->addRow(array($item['package']. ($item['installed'] ? ' ( installed )' : ''), $item['title'], trim(strip_tags($item['description'])), "{$item['creator']}".( !empty($item['creator_email']) ? " <{$item['creator_email']}>" : "")));
       }
+
+      print $table->getTable();
     }
   }
 
-  /**
-   * Manage repositories
-   *
-   * @param array $args A subcommand followed by a list of one
-   *   or more repositories
-   *
-   * @subcommand repository
-   * @alias repo
-   */
-  public function repository($args = array()) {
-    $usage = "Usage: terminus plugin repository | repo add | list | remove";
-    $usage .= " <URL to plugin Git repository 1>";
-    $usage .= " [<URL to plugin Git repository 2>] ...";
-    if (empty($args)) {
-      $this->failure($usage);
-    }
-    $cmd = array_shift($args);
-    $valid_cmds = array('add', 'list', 'remove');
-    if (!in_array($cmd, $valid_cmds)) {
-      $this->failure($usage);
-    }
-    switch ($cmd) {
-      case 'add':
-        if (empty($args)) {
-          $this->failure($usage);
-        }
-        foreach ($args as $arg) {
-          $this->addRepository($arg);
-        }
-          break;
-      case 'list':
-        $repositories = $this->listRepositories();
-        if (empty($repositories)) {
-          $message = 'No plugin repositories exist.';
-          $this->log()->error($message);
-        } else {
-          $repo_yml = $this->getRepositoriesPath();
-          $message = "Plugin repositories are stored in $repo_yml.";
-          $this->log()->notice($message);
-          $message = "The following plugin repositories are available:";
-          $this->log()->notice($message);
-          foreach ($repositories as $repository) {
-            $this->log()->notice($repository);
-          }
-          $message = "The 'terminus plugin search' command will only search in these repositories.";
-          $this->log()->notice($message);
-        }
-          break;
-      case 'remove':
-        if (empty($args)) {
-          $this->failure($usage);
-        }
-        foreach ($args as $arg) {
-          $this->removeRepository($arg);
-        }
-          break;
-    }
-  }
 
   /**
    * Get the plugin directory
@@ -366,215 +314,28 @@ class PluginCommand extends TerminusCommand {
   }
 
   /**
-   * Get repositories
-   *
-   * @return array Parsed Yaml from the repositories.yml file
-   */
-  private function getRepositories() {
-    $repo_yml = $this->getRepositoriesPath();
-    $header = $this->getRepositoriesHeader();
-    if (file_exists($repo_yml)) {
-      $repo_data = @file_get_contents($repo_yml);
-      if ($repo_data != $header) {
-        return Yaml::parse($repo_data);
-      }
-    } else {
-      $handle = fopen($repo_yml, "w");
-      fwrite($handle, $header);
-      fclose($handle);
-    }
-    return array();
-  }
-
-  /**
-   * Get repositories.yml path
-   *
-   * @return string The full path to the repositories.yml file
-   */
-  private function getRepositoriesPath() {
-    $plugin_dir = $this->getPluginDir();
-    return $plugin_dir . 'repositories.yml';
-  }
-
-  /**
-   * Get repositories.yml header
-   *
-   * @return string repositories.yml header
-   */
-  private function getRepositoriesHeader() {
-    return <<<YML
-# Terminus plugin repositories
-#
-# List of well-known or custom plugin Git repositories
----
-YML;
-  }
-
-  /**
-   * Add repository
-   *
-   * @param string $repo Repository URL
-   */
-  private function addRepository($repo = '') {
-    if (!$this->isValidUrl($repo)) {
-      $message = "$repo is not a valid URL.";
-      $this->failure($message);
-    }
-    $repo_exists = false;
-    $repositories = $this->listRepositories();
-    foreach ($repositories as $repository) {
-      if ($repository == $repo) {
-        $message = "Unable to add $repo.  Repository already added.";
-        $this->log()->error($message);
-        $repo_exists = true;
-        break;
-      }
-    }
-    if (!$repo_exists) {
-      $parts = parse_url($repo);
-      if (isset($parts['path']) && ($parts['path'] != '/')) {
-        $host = $parts['scheme'] . '://' . $parts['host'];
-        $path = substr($parts['path'], 1);
-        $repositories = $this->getRepositories();
-        $repositories[$host][] = $path;
-        $this->saveRepositories($repositories);
-      }
-    }
-  }
-
-  /**
-   * List repositories
-   *
-   * @return array List of fully qualified domain repository URLs
-   */
-  private function listRepositories() {
-    $repo_urls = array();
-    $repositories = $this->getRepositories();
-    foreach ($repositories as $host => $repository) {
-      foreach ($repository as $path) {
-        $repo_urls[] = $host . '/' . $path;
-      }
-    }
-    return $repo_urls;
-  }
-
-  /**
-   * Remove repository
-   *
-   * @param string $repo Repository URL
-   */
-  private function removeRepository($repo = '') {
-    $exists = false;
-    $repositories = $this->listRepositories();
-    foreach ($repositories as $repository) {
-      if ($repository == $repo) {
-        $exists = true;
-        break;
-      }
-    }
-    if (!$exists) {
-      $message = "Unable to remove $repo.  Repository does not exist.";
-      $this->log()->error($message);
-    } else {
-      $parts = parse_url($repo);
-      $host = $parts['scheme'] . '://' . $parts['host'];
-      $path = substr($parts['path'], 1);
-      $repositories = $this->getRepositories();
-      foreach ($repositories as $repo_host => $repository) {
-        if ($repo_host == $host) {
-          foreach ($repository as $key => $repo_url) {
-            if ($repo_url == $path) {
-              unset($repositories[$host][$key]);
-              $this->saveRepositories($repositories, 'remove');
-              break;
-            }
-          }
-          break;
-        }
-      }
-    }
-  }
-
-  /**
-   * Save repositories
-   *
-   * @param array $repos A list of plugin repositories
-   */
-  private function saveRepositories($repos = array(), $op = 'add') {
-    $repo_yml = $this->getRepositoriesPath();
-    $header = $this->getRepositoriesHeader();
-    $repo_data = "$header\n" . Yaml::dump($repos);
-    try {
-      $handle = fopen($repo_yml, "w");
-      fwrite($handle, $repo_data);
-      fclose($handle);
-    } catch (Exception $e) {
-      $messages = array();
-      $messages[] = "Unable to $op plugin repository.";
-      $messages[] = $e->getMessage();
-      $message = implode("\n", $messages);
-      $this->failure($message);
-    }
-    if ($op == 'add') {
-      $oped = 'added';
-    } else {
-      $oped = 'removed';
-    }
-    $message = "Plugin repository was $oped successfully.";
-    $this->log()->notice($message);
-  }
-
-  /**
    * Search repositories
    *
    * @param string $args A list of partial or complete plugin names
    * @return array List of plugin names found
    */
   private function searchRepositories($args = array()) {
-    $titles = array();
-    $plugins = array();
-    $repositories = $this->listRepositories();
-    foreach ($repositories as $repository) {
-      foreach ($args as $arg) {
-        $url = $repository . '/' . $arg;
-        if ($this->isValidUrl($url)) {
-          if ($this->isValidPlugin($repository, $arg)) {
-            $plugins[$arg] = $repository;
-          }
-        } else {
-          $parts = @parse_url($repository);
-          if (isset($parts['host'])) {
-            $host = $parts['host'];
-            switch ($host) {
-              case 'bitbucket.com':
-                // TODO: Add BitBucket parsing logic
-                  break;
-              case 'github.com':
-                $repo_data = @file_get_contents($repository . '?tab=repositories');
-                if (!empty($repo_data)) {
-                  $path = $parts['path'];
-                  $pattern = '|' . $path . '/(.*)".*codeRepository|U';
-                  preg_match_all($pattern, $repo_data, $matches);
-                  if (isset($matches[1])) {
-                    foreach ($matches[1] as $match) {
-                      if ($title = $this->isValidPlugin($repository, $match)) {
-                        $titles["$repository/$match"] = $title;
-                      }
-                    }
-                    foreach ($titles as $repo => $title) {
-                      if ((stripos($repo, $arg) !== false) || (stripos($title, $arg) !== false)) {
-                        $plugins[$repo] = $title;
-                      }
-                    }
-                  }
-                }
-                  break;
-              default:
-            }
-          }
-        }
-      }
+    $plugins_dir = $this->getPluginDir();
+
+    $results = file_get_contents(DEFAULT_URL . '?package='.$args[0]);
+
+    $results = json_decode($results, true);
+
+    $output = array_column($results, 'package');
+    $plugin_search = preg_grep("/{$args[0]}/", $output);
+    $keys = array_keys($results);
+    foreach($plugin_search as $index => $package){
+      $plugin_id = $keys[$index];
+      $item = $results[$plugin_id];
+      $item['installed'] = is_dir($plugins_dir . $item['package']);
+      $plugins[] = $item;
     }
+
     return $plugins;
   }
 
@@ -602,10 +363,7 @@ YML;
       preg_match('|<title>(.*)</title>|', $plugin_data, $match);
       if (isset($match[1])) {
         $title = $match[1];
-        if (stripos($title, 'terminus') && stripos($title, 'plugin')) {
-          return $title;
-        }
-        return '';
+        return $title;
       }
       return '';
     }
