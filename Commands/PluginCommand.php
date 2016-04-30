@@ -9,7 +9,7 @@ use Terminus\Commands\TerminusCommand;
 use Terminus\Exceptions\TerminusException;
 use Terminus\Utils;
 
-const DEFAULT_URL = 'http://dev-terminus-plugins.pantheonsite.io/plugins.json';
+const DEFAULT_URL = 'http://live-terminus-plugins.pantheonsite.io/plugins.json';
 
 /**
  * Manage Terminus plugins
