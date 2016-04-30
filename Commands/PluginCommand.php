@@ -9,8 +9,7 @@ use Terminus\Commands\TerminusCommand;
 use Terminus\Exceptions\TerminusException;
 use Terminus\Utils;
 
-const DEFAULT_URL = 'https://terminus-plugins.firebaseio.com/';
-const DEFAULT_PATH = '/plugins';
+const DEFAULT_URL = 'http://dev-terminus-plugins.pantheonsite.io/plugins.json';
 
 /**
  * Manage Terminus plugins
