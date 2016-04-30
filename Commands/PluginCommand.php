@@ -402,8 +402,9 @@ YML;
    */
   private function searchRepositories($args = array()) {
     $plugins_dir = $this->getPluginDir();
-    $this->database = new \Firebase\FirebaseLib(DEFAULT_URL);
-    $results = $this->database->get(DEFAULT_PATH);
+
+    $results = file_get_contents(DEFAULT_URL . '?package='.$args[0]);
+
     $results = json_decode($results, true);
 
     $output = array_column($results, 'package');
