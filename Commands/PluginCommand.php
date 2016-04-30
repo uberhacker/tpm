@@ -77,7 +77,7 @@ class PluginCommand extends TerminusCommand {
               $message = "{$item['package']} plugin already installed.";
               $this->log()->notice($message);
             } else {
-              exec("cd \"$plugins_dir\" && git clone {$item['repo']}", $output);
+              exec("cd \"$plugins_dir\" && git clone {$item['repo']} {$item['package']}", $output);
               foreach ($output as $message) {
                 $this->log()->notice($message);
               }
@@ -220,7 +220,7 @@ class PluginCommand extends TerminusCommand {
       );
 
       foreach($plugins AS $item){
-        $table->addRow(array($item['package']. ($item['installed'] ? ' ( installed )' : ''), $item['title'], $item['description'], "{$item['creator']}".( !empty($item['creator_email']) ? " <{$item['creator_email']}>" : "")));
+        $table->addRow(array($item['package']. ($item['installed'] ? ' ( installed )' : ''), $item['title'], trim(strip_tags($item['description'])), "{$item['creator']}".( !empty($item['creator_email']) ? " <{$item['creator_email']}>" : "")));
       }
 
       print $table->getTable();
