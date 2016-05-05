@@ -77,20 +77,64 @@ class PluginCommand extends TerminusCommand {
    */
   public function show() {
     $plugins_dir = $this->getPluginDir();
-    exec("ls \"$plugins_dir\"", $output);
-    if (empty($output[0])) {
+    exec("ls \"$plugins_dir\"", $plugins);
+    if (empty($plugins[0])) {
       $message = "No plugins installed.";
       $this->log()->notice($message);
     } else {
+      $rows = array();
+      $labels = [
+        'name'        => 'Name',
+        'location'    => 'Location',
+        'description' => 'Description',
+      ];
+      $windows = Utils\isWindows();
+      if ($windows) {
+        $slash = '\\\\';
+      } else {
+        $slash = '/';
+      }
       $message = "Plugins are installed in $plugins_dir.";
       $this->log()->notice($message);
-      $message = "The following plugins are installed:";
-      $this->log()->notice($message);
-      foreach ($output as $plugin) {
-        if (is_dir($plugins_dir . $plugin)) {
-          $this->log()->notice($plugin);
+      foreach ($plugins as $plugin) {
+        $plugin_dir = $plugins_dir . $plugin;
+        $git_dir = $plugin_dir . $slash . '.git';
+        if (is_dir("$plugin_dir") && is_dir("$git_dir")) {
+          $remotes = array();
+          exec("cd \"$plugin_dir\" && git remote -v | xargs", $remotes);
+          foreach ($remotes as $line) {
+            $parts = explode(' ', $line);
+            if (isset($parts[1])) {
+              $repo = $parts[1];
+              $parts = parse_url($repo);
+              $path = explode('/', $parts['path']);
+              $base = array_pop($path);
+              $repository = $parts['scheme'] . '://' . $parts['host'] . implode('/', $path);
+              if ($title = $this->isValidPlugin($repository, $base)) {
+                $description = '';
+                $parts = explode(':', $title);
+                if (isset($parts[1])) {
+                  $description = trim($parts[1]);
+                }
+                $rows[] = [
+                  'name'        => $plugin,
+                  'location'    => $repository,
+                  'description' => $description,
+                ];
+              } else {
+                $message = "$repo is not a valid plugin Git repository.";
+                $this->log()->error($message);
+              }
+              break;
+            } else {
+              $message = "$plugin_dir is not a valid plugin Git repository.";
+              $this->log()->error($message);
+            }
+          }
         }
       }
+      // Output the plugin list in table format.
+      $this->output()->outputRecordList($rows, $labels);
       $message = "Use 'terminus plugin install' to add more plugins.";
       $this->log()->notice($message);
     }
