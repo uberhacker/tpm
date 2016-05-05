@@ -79,7 +79,7 @@ class PluginCommand extends TerminusCommand {
     $plugins_dir = $this->getPluginDir();
     exec("ls \"$plugins_dir\"", $plugins);
     if (empty($plugins[0])) {
-      $message = "No plugins installed.";
+      $message = "No plugins are installed.";
       $this->log()->notice($message);
     } else {
       $rows = array();
@@ -134,8 +134,13 @@ class PluginCommand extends TerminusCommand {
         }
       }
       // Output the plugin list in table format.
+      $count = count($rows);
+      $plural = ' is';
+      if ($count > 1) {
+        $plural = 's are';
+      }
       $this->output()->outputRecordList($rows, $labels);
-      $message = "Use 'terminus plugin install' to add more plugins.";
+      $message = "{$count} plugin{$plural} installed.  Use 'terminus plugin install' to add more plugins.";
       $this->log()->notice($message);
     }
   }
