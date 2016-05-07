@@ -1,8 +1,18 @@
 {
   "name": "uberhacker/tpm",
+  "type": "terminus-plugin",
   "description": "Terminus plugin to manage all your Terminus plugins",
+  "keywords": ["terminus","plugin","pantheon"],
   "homepage": "https://github.com/uberhacker/tpm",
   "license": "MIT",
+  "authors": [
+    {
+      "name": "Ed Reel",
+      "email": "edreel@gmail.com",
+      "homepage": "http://edreel.com",
+      "role": "Consultant"
+    }
+  ],
   "require": {
     "php": ">=5.4"
   }
