@@ -101,12 +101,12 @@ class PluginCommand extends TerminusCommand {
         $git_dir = $plugin_dir . $slash . '.git';
         if (is_dir("$plugin_dir") && is_dir("$git_dir")) {
           $remotes = array();
-          exec("cd \"$plugin_dir\" && git remote -v | xargs", $remotes);
+          exec("cd \"$plugin_dir\" && git remote -v", $remotes);
           foreach ($remotes as $line) {
-            $parts = explode(' ', $line);
+            $parts = explode("\t", $line);
             if (isset($parts[1])) {
-              $repo = $parts[1];
-              $parts = parse_url($repo);
+              $repo = explode(' ', $parts[1]);
+              $parts = parse_url($repo[0]);
               $path = explode('/', $parts['path']);
               $base = array_pop($path);
               $repository = $parts['scheme'] . '://' . $parts['host'] . implode('/', $path);
